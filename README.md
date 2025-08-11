@@ -30,9 +30,18 @@ math_tutor_agent = Agent(
 - Tool: function-calling, hosted tools(retrieval/web/computer use), agents-as-tools
 
 
+### 2. Voice Agent
+
+[![OpenAI Agents SDK](https://img.shields.io/badge/Agents%20SDK-Voice%20Quickstart-000?logo=openai&logoColor=white)](https://openai.github.io/openai-agents-python/voice/quickstart/)
+
+<img src="assets/imgs/voice_agent.png" alt="alt text" width="500px">
+
+**Voice angent workflow SDK** : [SingleAgentVoiceWorkflow](https://openai.github.io/openai-agents-python/ref/voice/workflow/#agents.voice.workflow.SingleAgentVoiceWorkflow)
+
+**PCM** : Pulse Code Modulation
 
 
 
 # References
 - handoff : https://openai.github.io/openai-agents-python/ref/agent/?utm_source=chatgpt.com
-- 
+- voice agent : https://openai.github.io/openai-agents-python/voice/quickstart/
