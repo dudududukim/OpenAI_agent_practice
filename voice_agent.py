@@ -3,6 +3,7 @@ import random
 
 import numpy as np
 import sounddevice as sd
+import time, json
 
 from dotenv import load_dotenv
 
@@ -47,6 +48,21 @@ agent = Agent(
     tools=[get_weather],
 )
 
+CSI = "\033["
+COL = {
+    "audio": "38;5;39m",
+    "lc": "38;5;214m",
+    "err": "38;5;196m",
+    "txt": "38;5;46m",
+    "dim": "2m",
+    "reset": "0m",
+}
+
+def c(s, key): return f"{CSI}{COL[key]}{s}{CSI}{COL['reset']}"
+def now(): return time.strftime("%H:%M:%S")
+def pretty_payload(e):
+    d = {k: v for k, v in getattr(e, "__dict__", {}).items() if k not in ("data",)}
+    return json.dumps(d, ensure_ascii=False, default=lambda o: getattr(o, "__dict__", str(o)))
 
 async def main():
     pipeline = VoicePipeline(workflow=SingleAgentVoiceWorkflow(agent))
@@ -60,10 +76,15 @@ async def main():
     player.start()
 
     # Play the audio stream as it comes in
-    async for event in result.stream():
-        if event.type == "voice_stream_event_audio":
+    async for event in result.stream():     # An event from the VoicePipeline, streamed via StreamedAudioResult.stream()
+        t = event.type
+        if t == "voice_stream_event_audio":
             player.write(event.data)
-
+        elif t == "voice_stream_event_lifecycle":
+            print(f"{now()} {c('[LIFECYCLE]', 'lc')} {pretty_payload(event)}")
+            pass
+        elif t == "voice_stream_event_error":
+            print("error:", getattr(event, "message", event))
 
 if __name__ == "__main__":
     asyncio.run(main())

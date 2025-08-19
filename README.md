@@ -40,6 +40,12 @@ math_tutor_agent = Agent(
 
 **PCM** : Pulse Code Modulation
 
+Results
+```bash
+14:15:40 [LIFECYCLE] {"event": "turn_started", "type": "voice_stream_event_lifecycle"}
+14:15:43 [LIFECYCLE] {"event": "turn_ended", "type": "voice_stream_event_lifecycle"}
+14:15:43 [LIFECYCLE] {"event": "session_ended", "type": "voice_stream_event_lifecycle"}
+```
 
 
 # References
