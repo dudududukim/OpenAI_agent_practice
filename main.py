@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import time as _time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from cumpa_workflow import MyWorkflow
 
 load_dotenv()
 
@@ -39,7 +40,7 @@ def patch_stt_event_handler():
                        "epoch_ms": int(_time.time() * 1000),
                        "source": "speech_stopped"
                    }
-                   print(f"{now()} {c('[LIFECYCLE]', 'lc')}" + json.dumps(payload, ensure_ascii=False))
+                   print(f"{now()} {c('[LIFECYCLE]', 'lifecycle')}" + json.dumps(payload, ensure_ascii=False))
 
                 if et in ("input_audio_transcription_completed",
                           "conversation.item.input_audio_transcription.completed"):
@@ -75,7 +76,7 @@ sm_vad = {
 
 cfg = VoicePipelineConfig(
     stt_settings=STTModelSettings(
-        language="ko",          # 필요 시
+        language="ko",
         turn_detection=sm_vad
     ),
     tts_settings=TTSModelSettings(
@@ -86,8 +87,8 @@ cfg = VoicePipelineConfig(
             "Speak in Korean with a consistent, neutral tone and stable pitch. "
             "Do not change style, accent, or expressiveness mid-utterance."
         ),
-        speed=1.0,
-        buffer_size=240,
+        speed=2.0,
+        buffer_size=120,
     )
 )
 
@@ -97,41 +98,28 @@ OUT_SR = 24000
 DTYPE = np.int16
 CHANNELS = 1
 
-@function_tool      # it's like wrapping the function as tool
-def get_weather(city: str) -> str:
-    """Get the weather for a given city."""
-    print(f"[debug] get_weather called with city: {city}")
-    choices = ["sunny", "cloudy", "rainy", "snowy"]
-    return f"The weather in {city} is {random.choice(choices)}."
+def on_transcription_start(text: str):
+    payload = {
+        "event": "transcription_start",
+        "transcript": text,
+    }
+    print(f"{now()} {c('[ON_START]', 'info')} {json.dumps(payload, ensure_ascii=False)}")
 
-korean_agent = Agent(
-    name="Korean",
-    handoff_description="A Korean speaking agent.",
-    instructions=prompt_with_handoff_instructions(
-        "You're speaking to a human, so be polite and concise. Speak in Korean.",
-    ),
-    model="gpt-4o-mini",
-)
-
-agent = Agent(
-    name="Assistant",
-    instructions=prompt_with_handoff_instructions(
-        "You're speaking to a human, so be polite and concise. If the user speaks in Korean, handoff to the korean agent.",
-    ),
-    model="gpt-4o-mini",
-    handoffs=[korean_agent],
-    tools=[get_weather],
-)
+workflow = MyWorkflow(secret_word="쿰파", on_start=on_transcription_start)
 
 CSI = "\033["
 COL = {
-    "audio": "38;5;39m",
-    "lc": "38;5;214m",
-    "err": "38;5;196m",
-    "txt": "38;5;46m",
-    "dim": "2m",
+    "mic": "38;5;39m",       
+    "audio": "38;5;46m",     
+    "lifecycle": "38;5;214m",
+    "error": "38;5;196m",    
+    "debug": "38;5;244m",    
+    "info": "38;5;33m",      
+
+    # reset
     "reset": "0m",
 }
+
 
 def c(s, key): return f"{CSI}{COL[key]}{s}{CSI}{COL['reset']}"
 def now(): return datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -141,7 +129,7 @@ def pretty_payload(e):
 
 async def main():
     pipeline = VoicePipeline(
-        workflow=SingleAgentVoiceWorkflow(agent),
+        workflow=workflow,
         config=cfg,
     )
     
@@ -178,20 +166,24 @@ async def main():
 
     # Play the audio stream as it comes in
     try:
-        print(f"{now()} {c('[MIC START]', 'audio')} Conversation started. Listening for input...")
+        print(f"{now()} {c('[MIC START]', 'mic')} Conversation started. Listening for input...")
         result = await pipeline.run(audio_input)
 
         async for event in result.stream():     # An event from the VoicePipeline, streamed via StreamedAudioResult.stream()
             t = event.type
             if t == "voice_stream_event_audio":
                 # player.write(event.data)
-                print(f"{now()} {c('[AUDIO PLAYING]', 'txt')} {pretty_payload(event)}")
+                print(f"{now()} {c('[AUDIO PLAYING]', 'audio')} {pretty_payload(event)}")
                 await loop.run_in_executor(play_exec, player.write, event.data)
             elif t == "voice_stream_event_lifecycle":
-                print(f"{now()} {c('[LIFECYCLE]', 'lc')} {pretty_payload(event)}")
+                print(f"{now()} {c('[LIFECYCLE]', 'lifecycle')} {pretty_payload(event)}")
                 pass
             elif t == "voice_stream_event_error":
-                print("error:", getattr(event, "message", event))
+                payload = {
+                    "event": "error",
+                    "message": getattr(event, "message", str(event)),
+                }
+                print(f"{now()} {c('[ERROR]', 'error')} {json.dumps(payload, ensure_ascii=False)}")
     finally:
         mic_task.cancel()
 
