@@ -6,6 +6,7 @@ import time, json
 from dotenv import load_dotenv
 import time as _time
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ from agents.voice import (
     StreamedAudioInput, VoicePipeline, VoicePipelineConfig, SingleAgentVoiceWorkflow, VoiceWorkflowBase
 )
 
-from agents.voice.model import STTModelSettings
+from agents.voice.model import STTModelSettings, TTSModelSettings
 
 # --- begin: STT event handler hotfix ---
 from agents.voice.models import openai_stt as _stt
@@ -76,6 +77,17 @@ cfg = VoicePipelineConfig(
     stt_settings=STTModelSettings(
         language="ko",          # 필요 시
         turn_detection=sm_vad
+    ),
+    tts_settings=TTSModelSettings(
+        # OpenAI default enum: 'alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer')
+        voice="alloy",
+        # tone
+        instructions=(
+            "Speak in Korean with a consistent, neutral tone and stable pitch. "
+            "Do not change style, accent, or expressiveness mid-utterance."
+        ),
+        speed=1.0,
+        buffer_size=240,
     )
 )
 
@@ -149,6 +161,9 @@ async def main():
     player = sd.OutputStream(samplerate=OUT_SR, channels=CHANNELS, dtype=DTYPE)
     player.start()
 
+    play_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="audio-play")
+    loop = asyncio.get_running_loop()
+
     async def stream_mic():
         chunk_size = int(IN_SR * CHUNK_SEC)
         while True:
@@ -163,12 +178,15 @@ async def main():
 
     # Play the audio stream as it comes in
     try:
+        print(f"{now()} {c('[MIC START]', 'audio')} Conversation started. Listening for input...")
         result = await pipeline.run(audio_input)
 
         async for event in result.stream():     # An event from the VoicePipeline, streamed via StreamedAudioResult.stream()
             t = event.type
             if t == "voice_stream_event_audio":
-                player.write(event.data)
+                # player.write(event.data)
+                print(f"{now()} {c('[AUDIO PLAYING]', 'txt')} {pretty_payload(event)}")
+                await loop.run_in_executor(play_exec, player.write, event.data)
             elif t == "voice_stream_event_lifecycle":
                 print(f"{now()} {c('[LIFECYCLE]', 'lc')} {pretty_payload(event)}")
                 pass
