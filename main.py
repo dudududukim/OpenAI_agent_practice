@@ -100,7 +100,7 @@ CHANNELS = 1
 
 def transcription_print(text: str):
     payload = {
-        "event": "transcription_start",
+        "event": "transcription_done",
         "transcript": text,
     }
     print(f"{now()} {c('[Trans Done]', 'info')} {json.dumps(payload, ensure_ascii=False)}")
