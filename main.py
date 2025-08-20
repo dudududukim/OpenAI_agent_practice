@@ -98,14 +98,14 @@ OUT_SR = 24000
 DTYPE = np.int16
 CHANNELS = 1
 
-def on_transcription_start(text: str):
+def transcription_print(text: str):
     payload = {
         "event": "transcription_start",
         "transcript": text,
     }
-    print(f"{now()} {c('[ON_START]', 'info')} {json.dumps(payload, ensure_ascii=False)}")
+    print(f"{now()} {c('[Trans Done]', 'info')} {json.dumps(payload, ensure_ascii=False)}")
 
-workflow = MyWorkflow(secret_word="쿰파", on_start=on_transcription_start)
+workflow = MyWorkflow(secret_word="쿰파", on_start=transcription_print)
 
 CSI = "\033["
 COL = {
@@ -193,5 +193,5 @@ async def main():
         player.close()
 
 if __name__ == "__main__":
-    patch_stt_event_handler()
+    # patch_stt_event_handler()         -> un-comment this : if you are using without modifying '.venv/lib/python3.12/site-packages/agents/voice/models/openai_stt.py' _handle_events
     asyncio.run(main())
