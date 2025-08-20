@@ -12,6 +12,12 @@ uv sync
 uv run python main.py
 ```
 
+**PLEASE READ BELOW LINE (main.py 196)**
+
+``` python
+# patch_stt_event_handler()         -> un-comment this : if you are using without modifying '.venv/lib/python3.12/site-packages/agents/voice/models/openai_stt.py' _handle_events
+```
+
 ## Summuries
 
 ### 1. Agent definition
