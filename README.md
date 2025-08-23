@@ -1,3 +1,9 @@
+# !IMPORTANT
+
+I've used this project with openai-agents-python package source code customized.
+
+So after i'm gonna provide code with fixed source code that you should directly use code with import.
+
 # Following below openai agent SDK
 
 [![OpenAI Agents SDK](https://img.shields.io/badge/Agents%20SDK-Quickstart-000?logo=openai&logoColor=white)](https://openai.github.io/openai-agents-python/quickstart/)
